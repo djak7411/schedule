@@ -12,6 +12,7 @@ public class Discipline {
     private boolean type = false;
     public boolean canUse = true;
     public int Weight = 0;
+    public int counter = 0;
     public ArrayList<Integer> teachers = new ArrayList<Integer>();
     
     public Discipline(int id, String name, long start, long end, int hours, boolean type) throws Exception{
@@ -88,6 +89,7 @@ public class Discipline {
 	if(this.hours>=2) {
 	    this.hours-=2;
 	    recountWeight();
+	    this.counter++;
 	}
 	else
 	    canUse = false;

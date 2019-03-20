@@ -49,6 +49,10 @@ public class ClientThread implements Runnable {
             out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
             JSONObject request = new JSONObject(in.readLine());
             initObjects(request);
+            printObjects();
+            generateDataSheet();
+            printDataSheet();
+            generateSchedule();
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -118,9 +122,7 @@ public class ClientThread implements Runnable {
         		    );
         	}
 
-        	printObjects();
-        	generateDataSheet();
-        	printDataSheet();
+        	
         	
         
         
@@ -208,6 +210,14 @@ public class ClientThread implements Runnable {
 	
     }
     
+    public int findGroupIndexById(int id) {
+	for(int i = 0; i < groupsList.size(); i++) {
+	    if(groupsList.get(i).getId() == id) return i;
+	}
+	return -1;
+	
+    }
+    
     public int findLectureIndexById(int id) {
 	for(int i = 0; i < lecturesList.size(); i++) {
 	    if(lecturesList.get(i).getId() == id) return i;
@@ -224,15 +234,84 @@ public class ClientThread implements Runnable {
 	
     }
     
-    public int[][] generateRow() {
-	int[][] scheduleRow = new int[groupsList.size()][3];
-	for(int i = 0; i < dataSheet.length; i++) {
-	    for(int j = 0; j < dataSheet[0].length; j++) {
-		
+    public void generateSchedule() {
+	//TODO сгенерить расписание собсна, нужно проверить как поведет себя генерация строчки при дальнейшей генерации расписания, возможны проблемы
+	int[][] b = generateRow();
+	System.out.println("\ngroup discipline teacher lecture");
+	for(int i = 0; i < b.length; i++) {
+	    System.out.println();
+	    for(int j = 0; j < b[0].length; j++) {
+		System.out.print(b[i][j] + "\t");
 	    }
 	}
-	
+    }
+    
+    public int[][] generateRow() {
+	//TODO по-моему стоит привязать преподов к группе, но я не уверен
+	// upd привязал вызвав другие коллекции карочи вооот ыыы, но теперь ид преподов перепутаны потому что берется первый попавшийся. Возможно проблема в инициализации.
+	for(Teacher t : teachersList)
+	    t.busy = false;
+	for(Lecture l : lecturesList)
+	    l.busy = false;
+	int[][] scheduleRow = new int[groupsList.size()][4];
+	int srIndex = 0;
+      for(Group g : groupsList) {
+	  scheduleRow[srIndex][0] = g.getId();
+	for(int i = 0; i < dataSheet.length; i++) {
+	    if(dataSheet[i][2] == maxWeightByGroup(g.getId()) && g.disciplines.get(findDisciplineIndexById(dataSheet[i][1])).canUse && scheduleRow[srIndex][0] == dataSheet[i][0]){
+		scheduleRow[srIndex][1] = dataSheet[i][1];
+		g.disciplines.get(findDisciplineIndexById(dataSheet[i][1])).decrementHours();
+		g.disciplines.get(findDisciplineIndexById(dataSheet[i][1])).Weight+=2;
+
+		scheduleRow[srIndex][2] = findNonBusyTeacherId(dataSheet[i][1], dataSheet[i][0]);
+		
+		scheduleRow[srIndex][3] = findNonBusyLectureId(dataSheet[i][1]);
+	    }
+	    
+	}
+	srIndex++;
+      }
 	return scheduleRow;
+    }
+    
+    public int maxWeightByGroup(int groupId) {
+	int max = dataSheet[0][2];
+	for(int i = 0; i < dataSheet.length; i++) {
+	    if(dataSheet[i][0] == groupId && dataSheet[i][2] > max) {
+		max = dataSheet[i][1];
+	    }
+	}
+	return max;
+    }
+    
+    public int findNonBusyTeacherId(int disciplineId, int groupId) {
+	int teacherId = -10;
+	Group g = groupsList.get(findGroupIndexById(groupId));
+	for(Discipline d : g.disciplines) {
+	    if(d.getId() == disciplineId) {
+        	    for(Integer t : d.teachers) {
+        		if(!teachersList.get(findTeacherIndexById(t)).busy) {
+        		    teacherId = t;
+        		}
+        	    }
+	    }
+	}
+	teachersList.get(findTeacherIndexById(teacherId)).busy = true;
+
+	return teacherId;
+    }
+    
+    public int findNonBusyLectureId(int disciplineId) {
+	int lectureId = 0;
+	for(Lecture l : lecturesList) {
+	    if(((disciplinesList.get(findDisciplineIndexById(disciplineId)).getType() == l.getType()) || (disciplinesList.get(findDisciplineIndexById(disciplineId)).getType() == false && l.getType() == true)) && !l.busy) {
+		lectureId = l.getId();
+	    }
+
+	}
+	lecturesList.get(findLectureIndexById(lectureId)).busy = true;
+
+	return lectureId;
     }
 
 }
