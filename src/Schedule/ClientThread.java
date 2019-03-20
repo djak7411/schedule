@@ -210,14 +210,6 @@ public class ClientThread implements Runnable {
 	
     }
     
-    public int findGroupIndexById(int id) {
-	for(int i = 0; i < groupsList.size(); i++) {
-	    if(groupsList.get(i).getId() == id) return i;
-	}
-	return -1;
-	
-    }
-    
     public int findLectureIndexById(int id) {
 	for(int i = 0; i < lecturesList.size(); i++) {
 	    if(lecturesList.get(i).getId() == id) return i;
@@ -235,7 +227,7 @@ public class ClientThread implements Runnable {
     }
     
     public void generateSchedule() {
-	//TODO сгенерить расписание собсна, нужно проверить как поведет себя генерация строчки при дальнейшей генерации расписания, возможны проблемы
+	//TODO сгенерить расписание собсна
 	int[][] b = generateRow();
 	System.out.println("\ngroup discipline teacher lecture");
 	for(int i = 0; i < b.length; i++) {
@@ -247,8 +239,6 @@ public class ClientThread implements Runnable {
     }
     
     public int[][] generateRow() {
-	//TODO по-моему стоит привязать преподов к группе, но я не уверен
-	// upd привязал вызвав другие коллекции карочи вооот ыыы, но теперь ид преподов перепутаны потому что берется первый попавшийся. Возможно проблема в инициализации.
 	for(Teacher t : teachersList)
 	    t.busy = false;
 	for(Lecture l : lecturesList)
@@ -258,12 +248,12 @@ public class ClientThread implements Runnable {
       for(Group g : groupsList) {
 	  scheduleRow[srIndex][0] = g.getId();
 	for(int i = 0; i < dataSheet.length; i++) {
-	    if(dataSheet[i][2] == maxWeightByGroup(g.getId()) && g.disciplines.get(findDisciplineIndexById(dataSheet[i][1])).canUse && scheduleRow[srIndex][0] == dataSheet[i][0]){
+	    if(dataSheet[i][2] == maxWeightByGroup(g.getId()) && disciplinesList.get(findDisciplineIndexById(dataSheet[i][1])).canUse && scheduleRow[srIndex][0] == dataSheet[i][0]){
 		scheduleRow[srIndex][1] = dataSheet[i][1];
-		g.disciplines.get(findDisciplineIndexById(dataSheet[i][1])).decrementHours();
-		g.disciplines.get(findDisciplineIndexById(dataSheet[i][1])).Weight+=2;
+		disciplinesList.get(findDisciplineIndexById(dataSheet[i][1])).decrementHours();
+		disciplinesList.get(findDisciplineIndexById(dataSheet[i][1])).Weight+=2;
 
-		scheduleRow[srIndex][2] = findNonBusyTeacherId(dataSheet[i][1], dataSheet[i][0]);
+		scheduleRow[srIndex][2] = findNonBusyTeacherId(dataSheet[i][1]);
 		
 		scheduleRow[srIndex][3] = findNonBusyLectureId(dataSheet[i][1]);
 	    }
@@ -284,10 +274,9 @@ public class ClientThread implements Runnable {
 	return max;
     }
     
-    public int findNonBusyTeacherId(int disciplineId, int groupId) {
+    public int findNonBusyTeacherId(int disciplineId) {
 	int teacherId = -10;
-	Group g = groupsList.get(findGroupIndexById(groupId));
-	for(Discipline d : g.disciplines) {
+	for(Discipline d : disciplinesList) {
 	    if(d.getId() == disciplineId) {
         	    for(Integer t : d.teachers) {
         		if(!teachersList.get(findTeacherIndexById(t)).busy) {
